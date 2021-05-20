@@ -83,6 +83,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             new ErrorParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -95,6 +96,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new MusicFoldersParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -119,6 +121,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new IndexesParser(context, getInstance(context)).parse(response.body().byteStream(), progressListener);
         }
@@ -172,6 +175,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new MusicDirectoryParser(context, getInstance(context)).parse(name, response.body().byteStream());
         }
@@ -190,6 +194,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new MusicDirectoryParser(context, getInstance(context)).parse(name, response.body().byteStream());
         }
@@ -207,6 +212,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new MusicDirectoryParser(context, getInstance(context)).parse(name, response.body().byteStream());
         }
@@ -227,6 +233,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new SearchResult2Parser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -244,6 +251,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new PlaylistParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -257,6 +265,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new PlaylistsParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -284,6 +293,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             new ErrorParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -301,6 +311,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             new ErrorParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -321,6 +332,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             new ErrorParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -342,6 +354,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             new ErrorParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -368,6 +381,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             new ErrorParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -388,6 +402,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             new ErrorParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -416,6 +431,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new EntryListParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -454,6 +470,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new EntryListParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -490,6 +507,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new EntryListParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -533,6 +551,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new RandomSongsParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -560,6 +579,7 @@ public class RESTMusicService implements MusicService {
                     .url(url)
                     .build();
 
+            Log.w(TAG, url);
             try (Response response = client.newCall(request).execute()) {
                 InputStream in = response.body().byteStream();
 
@@ -623,6 +643,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new GenreParser(context, getInstance(context)).parse(response.body().byteStream());
         }
@@ -651,6 +672,7 @@ public class RESTMusicService implements MusicService {
                 .url(url)
                 .build();
 
+        Log.w(TAG, url);
         try (Response response = client.newCall(request).execute()) {
             return new RandomSongsParser(context, getInstance(context)).parse(response.body().byteStream());
         }
