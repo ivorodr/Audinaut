@@ -20,6 +20,7 @@ package net.nullsum.audinaut.service;
 
 import android.app.Service;
 import android.content.ComponentCallbacks2;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -28,11 +29,13 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.audiofx.AudioEffect;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.util.Log;
+import android.view.KeyEvent;
 
 import androidx.collection.LruCache;
 
@@ -44,6 +47,7 @@ import net.nullsum.audinaut.domain.MusicDirectory;
 import net.nullsum.audinaut.domain.PlayerState;
 import net.nullsum.audinaut.domain.RepeatMode;
 import net.nullsum.audinaut.receiver.AudioNoisyReceiver;
+import net.nullsum.audinaut.receiver.MediaButtonIntentReceiver;
 import net.nullsum.audinaut.util.BufferProxy;
 import net.nullsum.audinaut.util.Constants;
 import net.nullsum.audinaut.util.ImageLoader;
@@ -52,6 +56,7 @@ import net.nullsum.audinaut.util.ShufflePlayBuffer;
 import net.nullsum.audinaut.util.SilentBackgroundTask;
 import net.nullsum.audinaut.util.SimpleServiceBinder;
 import net.nullsum.audinaut.util.Util;
+import net.nullsum.audinaut.util.compat.RemoteControlClientBase;
 import net.nullsum.audinaut.util.tags.BastpUtil;
 
 import java.io.File;
@@ -89,6 +94,8 @@ public class DownloadService extends Service {
     public static final int METADATA_UPDATED_COVER_ART = 8;
     private static final String TAG = DownloadService.class.getSimpleName();
     private static final long DEFAULT_DELAY_UPDATE_PROGRESS = 1000L;
+    private static final int REMOTE_PLAYLIST_PREV = 10;
+    private static final int REMOTE_PLAYLIST_NEXT = 40;
     private static final int REQUIRED_ALBUM_MATCHES = 4;
     private static final int SHUFFLE_MODE_NONE = 0;
     private static final int SHUFFLE_MODE_ALL = 1;
@@ -103,6 +110,7 @@ public class DownloadService extends Service {
     private final List<DownloadFile> cleanupCandidates = new ArrayList<>();
     private final List<OnSongChangedListener> onSongChangedListeners = new ArrayList<>();
     private final long delayUpdateProgress = DEFAULT_DELAY_UPDATE_PROGRESS;
+    private boolean foregroundService = false;
     private final AudioNoisyReceiver audioNoisyReceiver = new AudioNoisyReceiver();
     private Looper mediaPlayerLooper;
     private MediaPlayer mediaPlayer;
@@ -136,6 +144,21 @@ public class DownloadService extends Service {
     // Variables to manage getCurrentPosition sometimes starting from an arbitrary non-zero number
     private long subtractNextPosition = 0;
     private int subtractPosition = 0;
+
+    private RemoteControlClientBase mRemoteControl;
+
+    public static void startService(Context context) {
+        startService(context, new Intent(context, DownloadService.class));
+    }
+
+    public static void startService(Context context, Intent intent) {
+        PowerManager powerManager = (PowerManager) context.getSystemService(POWER_SERVICE);
+        if (Build.VERSION.SDK_INT < 26 || (powerManager != null && powerManager.isIgnoringBatteryOptimizations(intent.getPackage()))) {
+            context.startService(intent);
+        } else {
+            context.startForegroundService(intent);
+        }
+    }
 
     public static DownloadService getInstance() {
         return instance;
@@ -193,16 +216,27 @@ public class DownloadService extends Service {
 
         Util.registerMediaButtonEventReceiver(this);
 
+        if (mRemoteControl == null) {
+            // Use the remote control APIs (if available) to set the playback state
+            mRemoteControl = RemoteControlClientBase.createInstance();
+            ComponentName mediaButtonReceiverComponent = new ComponentName(getPackageName(), MediaButtonIntentReceiver.class.getName());
+            mRemoteControl.register(this, mediaButtonReceiverComponent);
+        }
+
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, this.getClass().getName());
         wakeLock.setReferenceCounted(false);
 
-        WifiManager wifiManager = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL, "downloadServiceLock");
 
         instance = this;
         shufflePlayBuffer = new ShufflePlayBuffer(this);
         lifecycleSupport.onCreate();
+
+        if(Build.VERSION.SDK_INT >= 26) {
+            Notifications.shutGoogleUpNotification(this);
+        }
 
         IntentFilter filter = new IntentFilter();
         filter.addAction("android.media.AUDIO_BECOMING_NOISY");
@@ -213,6 +247,11 @@ public class DownloadService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
         lifecycleSupport.onStart(intent);
+
+        String action = intent.getAction();
+        if(Build.VERSION.SDK_INT >= 26 && !this.isForeground() && !"KEYCODE_MEDIA_START".equals(action)) {
+            Notifications.shutGoogleUpNotification(this);
+        }
         return START_NOT_STICKY;
     }
 
@@ -255,6 +294,10 @@ public class DownloadService extends Service {
         mediaPlayerLooper.quit();
         shufflePlayBuffer.shutdown();
         effectsController.release();
+        if (mRemoteControl != null) {
+            mRemoteControl.unregister(this);
+            mRemoteControl = null;
+        }
 
         if (bufferTask != null) {
             bufferTask.cancel();
@@ -280,10 +323,10 @@ public class DownloadService extends Service {
     }
 
     public synchronized void download(List<MusicDirectory.Entry> songs, boolean save, boolean autoplay, boolean playNext, boolean shuffle) {
-        download(songs, save, autoplay, playNext, shuffle, 0);
+        download(songs, save, autoplay, playNext, shuffle, 0, 0);
     }
 
-    public synchronized void download(List<MusicDirectory.Entry> songs, boolean save, boolean autoplay, boolean playNext, boolean shuffle, int start) {
+    public synchronized void download(List<MusicDirectory.Entry> songs, boolean save, boolean autoplay, boolean playNext, boolean shuffle, int start, int position) {
         setShufflePlayEnabled(false);
         int offset = 1;
         boolean noNetwork = !Util.isOffline(this) && !Util.isNetworkConnected(this);
@@ -333,6 +376,7 @@ public class DownloadService extends Service {
         }
         revision++;
         onSongsChanged();
+        updateRemotePlaylist();
 
         if (shuffle) {
             shuffle();
@@ -342,9 +386,9 @@ public class DownloadService extends Service {
         }
 
         if (autoplay) {
-            play(start, true, 0);
-        } else if (start != 0) {
-            play(start, false, 0);
+            play(start, true, position);
+        } else if(start != 0 || position != 0) {
+            play(start, false, position);
         } else {
             if (currentPlaying == null) {
                 currentPlaying = downloadList.get(0);
@@ -385,6 +429,27 @@ public class DownloadService extends Service {
 
         checkDownloads();
         lifecycleSupport.serializeDownloadQueue();
+    }
+
+    private synchronized void updateRemotePlaylist() {
+        List<DownloadFile> playlist = new ArrayList<>();
+        if(currentPlaying != null) {
+            int startIndex = downloadList.indexOf(currentPlaying) - REMOTE_PLAYLIST_PREV;
+            if(startIndex < 0) {
+                startIndex = 0;
+            }
+
+            int size = size();
+            int endIndex = downloadList.indexOf(currentPlaying) + REMOTE_PLAYLIST_NEXT;
+            if(endIndex > size) {
+                endIndex = size;
+            }
+            for(int i = startIndex; i < endIndex; i++) {
+                playlist.add(downloadList.get(i));
+            }
+        }
+
+        mRemoteControl.updatePlaylist(playlist);
     }
 
     public synchronized void restore(List<MusicDirectory.Entry> songs, List<MusicDirectory.Entry> toDelete, int currentPlayingIndex, int currentPlayingPosition) {
@@ -461,6 +526,7 @@ public class DownloadService extends Service {
         revision++;
         onSongsChanged();
         lifecycleSupport.serializeDownloadQueue();
+        updateRemotePlaylist();
         setNextPlaying();
     }
 
@@ -531,6 +597,7 @@ public class DownloadService extends Service {
         }
         lifecycleSupport.serializeDownloadQueue();
         onSongsChanged();
+        onSongsChanged();
     }
 
     public void setOnline(final boolean online) {
@@ -567,6 +634,7 @@ public class DownloadService extends Service {
         }
         setCurrentPlaying(null);
         lifecycleSupport.serializeDownloadQueue();
+        updateRemotePlaylist();
         setNextPlaying();
         if (proxy != null) {
             proxy.stop();
@@ -595,6 +663,7 @@ public class DownloadService extends Service {
         revision++;
         onSongsChanged();
         lifecycleSupport.serializeDownloadQueue();
+        updateRemotePlaylist();
         if (downloadFile == nextPlaying) {
             setNextPlaying();
         }
@@ -728,6 +797,10 @@ public class DownloadService extends Service {
 
         if (currentPlaying != null && currentPlaying.getSong() != null) {
             Util.broadcastNewTrackInfo(this, currentPlaying.getSong());
+
+            if(mRemoteControl != null) {
+                mRemoteControl.updateMetadata(this, currentPlaying.getSong());
+            }
         } else {
             Util.broadcastNewTrackInfo(this, null);
             Notifications.hidePlayingNotification(this, this, handler);
@@ -745,6 +818,14 @@ public class DownloadService extends Service {
 
     public List<DownloadFile> getToDelete() {
         return toDelete;
+    }
+
+    public synchronized boolean isForeground() {
+        return this.foregroundService;
+    }
+
+    public synchronized void setIsForeground(boolean foreground) {
+        this.foregroundService = foreground;
     }
 
     public synchronized List<DownloadFile> getDownloads() {
@@ -849,6 +930,7 @@ public class DownloadService extends Service {
             proxy = null;
         }
         checkDownloads();
+        updateRemotePlaylist();
     }
 
     /**
@@ -1126,6 +1208,10 @@ public class DownloadService extends Service {
         } else if (hide) {
             Notifications.hidePlayingNotification(this, this, handler);
         }
+        if(mRemoteControl != null) {
+            mRemoteControl.setPlaybackState(playerState.getRemoteControlClientPlayState(), getCurrentPlayingIndex(), size());
+        }
+
         if (playerState == STARTED && positionCache == null) {
             positionCache = new LocalPositionCache();
             Thread thread = new Thread(positionCache, "PositionCache");
@@ -1301,6 +1387,8 @@ public class DownloadService extends Service {
                             setPlayerState(PAUSED);
                             onSongProgress();
                         }
+
+                        updateRemotePlaylist();
                     }
 
                     // Only call when starting, setPlayerState(PAUSED) already calls this
@@ -1443,6 +1531,7 @@ public class DownloadService extends Service {
             if (movedSong == nextPlaying || movedSong == currentPlaying || (currentPlayingIndex + 1) == to) {
                 setNextPlaying();
             }
+            updateRemotePlaylist();
         }
     }
 
@@ -1620,6 +1709,7 @@ public class DownloadService extends Service {
 
         if (revisionBefore != revision) {
             onSongsChanged();
+            updateRemotePlaylist();
         }
 
         if (wasEmpty && !downloadList.isEmpty()) {
@@ -1641,6 +1731,10 @@ public class DownloadService extends Service {
                 }
             }
         }
+    }
+
+    public RemoteControlClientBase getRemoteControlClient() {
+        return mRemoteControl;
     }
 
     private void applyReplayGain(MediaPlayer mediaPlayer, DownloadFile downloadFile) {
@@ -1730,6 +1824,10 @@ public class DownloadService extends Service {
         wakeLock.acquire(30000);
     }
 
+    public void handleKeyEvent(KeyEvent keyEvent) {
+        lifecycleSupport.handleKeyEvent(keyEvent);
+    }
+
     public void addOnSongChangedListener(OnSongChangedListener listener) {
         synchronized (onSongChangedListeners) {
             int index = onSongChangedListeners.indexOf(listener);
@@ -1801,6 +1899,8 @@ public class DownloadService extends Service {
         final Integer duration = getPlayerDuration();
         final boolean isSeekable = isSeekable();
         final int position = getPlayerPosition();
+        final int index = getCurrentPlayingIndex();
+        final int queueSize = size();
 
         synchronized (onSongChangedListeners) {
             for (final OnSongChangedListener listener : onSongChangedListeners) {
@@ -1814,6 +1914,9 @@ public class DownloadService extends Service {
 
         if (manual) {
             handler.post(() -> {
+                if(mRemoteControl != null) {
+                    mRemoteControl.setPlaybackState(playerState.getRemoteControlClientPlayState(), index, queueSize);
+                }
             });
         }
     }
@@ -1844,6 +1947,9 @@ public class DownloadService extends Service {
         }
 
         handler.post(() -> {
+            if(currentPlaying != null) {
+                mRemoteControl.metadataChanged(currentPlaying.getSong());
+            }
         });
     }
 

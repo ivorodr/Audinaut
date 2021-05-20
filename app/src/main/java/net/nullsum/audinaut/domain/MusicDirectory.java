@@ -27,7 +27,14 @@ import net.nullsum.audinaut.util.Constants;
 import net.nullsum.audinaut.util.UpdateHelper;
 import net.nullsum.audinaut.util.Util;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.text.Collator;
 import java.util.ArrayList;
@@ -233,9 +240,13 @@ public class MusicDirectory implements Serializable {
         private Integer duration;
         private Integer bitRate;
         private String path;
+        private boolean video;
         private Integer discNumber;
+        private boolean starred;
+        private Integer rating;
         private int type = 0;
         private int closeness;
+        private transient Artist linkedArtist;
 
         public Entry() {
 
@@ -249,6 +260,9 @@ public class MusicDirectory implements Serializable {
             this.id = artist.getId();
             this.title = artist.getName();
             this.directory = true;
+            this.starred = artist.isStarred();
+            this.rating = artist.getRating();
+            this.linkedArtist = artist;
         }
 
         public void loadMetadata(File file) {
@@ -476,12 +490,47 @@ public class MusicDirectory implements Serializable {
             this.path = path;
         }
 
+        public boolean isVideo() {
+            return video;
+        }
+
+        public void setVideo(boolean video) {
+            this.video = video;
+        }
+
         public Integer getDiscNumber() {
             return discNumber;
         }
 
         public void setDiscNumber(Integer discNumber) {
             this.discNumber = discNumber;
+        }
+
+        public boolean isStarred() {
+            return starred;
+        }
+
+        public void setStarred(boolean starred) {
+            this.starred = starred;
+
+            if(linkedArtist != null) {
+                linkedArtist.setStarred(starred);
+            }
+        }
+
+        public int getRating() {
+            return rating == null ? 0 : rating;
+        }
+        public void setRating(Integer rating) {
+            if(rating == null || rating == 0) {
+                this.rating = null;
+            } else {
+                this.rating = rating;
+            }
+
+            if(linkedArtist != null) {
+                linkedArtist.setRating(rating);
+            }
         }
 
         public int getType() {
@@ -525,6 +574,40 @@ public class MusicDirectory implements Serializable {
         @Override
         public String toString() {
             return title;
+        }
+
+        public byte[] toByteArray() throws IOException {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutput out = null;
+            try {
+                out = new ObjectOutputStream(bos);
+                out.writeObject(this);
+                out.flush();
+                return bos.toByteArray();
+            } finally {
+                try {
+                    bos.close();
+                } catch (IOException ex) {
+                    // ignore close exception
+                }
+            }
+        }
+
+        public static Entry fromByteArray(byte[] byteArray) throws IOException, ClassNotFoundException {
+            ByteArrayInputStream bis = new ByteArrayInputStream(byteArray);
+            ObjectInput in = null;
+            try {
+                in = new ObjectInputStream(bis);
+                return (Entry) in.readObject();
+            } finally {
+                try {
+                    if (in != null) {
+                        in.close();
+                    }
+                } catch (IOException ex) {
+                    // ignore close exception
+                }
+            }
         }
     }
 

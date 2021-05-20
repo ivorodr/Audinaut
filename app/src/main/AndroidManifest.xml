@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="net.nullsum.audinaut"
     android:installLocation="internalOnly">
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="30" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -17,6 +18,7 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission
         android:name="android.permission.READ_PHONE_STATE"
@@ -99,7 +101,16 @@
 
         <service
             android:name=".service.DownloadService"
-            android:label="Audinaut Playback Service" />
+            android:label="Audinaut Playback Service"
+            android:foregroundServiceType="location"/>
+
+        <service android:name="net.nullsum.audinaut.service.AutoMediaBrowserService"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService"/>
+            </intent-filter>
+        </service>
 
         <service android:name="net.nullsum.audinaut.service.sync.AuthenticatorService">
             <intent-filter>
@@ -190,6 +201,14 @@
         <meta-data
             android:name="android.app.default_searchable"
             android:value="net.nullsum.audinaut.activity.QueryReceiverActivity" />
+
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
+        <meta-data
+            android:name="com.google.android.gms.car.notification.SmallIcon"
+            android:resource="@drawable/stat_notify_playing" />
     </application>
 
 </manifest>

@@ -390,6 +390,13 @@ public final class Util {
         editor.apply();
     }
 
+    public static boolean isTagBrowsing(Context context) {
+        return isTagBrowsing(context, Util.getActiveServer(context));
+    }
+    public static boolean isTagBrowsing(Context context, int instance) {
+        return true;
+    }
+
     public static SharedPreferences getPreferences(Context context) {
         return context.getSharedPreferences(Constants.PREFERENCES_FILE_NAME, 0);
     }

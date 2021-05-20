@@ -18,6 +18,7 @@
  */
 package net.nullsum.audinaut.util;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -28,6 +29,7 @@ import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.TransitionDrawable;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
@@ -43,6 +45,7 @@ import net.nullsum.audinaut.domain.MusicDirectory;
 import net.nullsum.audinaut.domain.Playlist;
 import net.nullsum.audinaut.service.MusicService;
 import net.nullsum.audinaut.service.MusicServiceFactory;
+import net.nullsum.audinaut.util.compat.RemoteControlClientBase;
 
 /**
  * Asynchronous loading of images, with caching.
@@ -285,6 +288,48 @@ public class ImageLoader {
         return loadImage(view, entry, false, true);
     }
 
+    public SilentBackgroundTask<Void> loadImage(Context context, RemoteControlClientBase remoteControl, MusicDirectory.Entry entry, boolean blur) {
+        Bitmap bitmap;
+        if (entry == null || entry.getCoverArt() == null) {
+            bitmap = getUnknownImage(entry, imageSizeLarge);
+            setImage(entry, remoteControl, Util.createDrawableFromBitmap(context, bitmap));
+            return null;
+        }
+
+        bitmap = cache.get(getKey(entry.getCoverArt(), imageSizeLarge));
+        if (bitmap != null && !bitmap.isRecycled()) {
+            Drawable drawable = Util.createDrawableFromBitmap(this.context, bitmap);
+            setImage(entry, remoteControl, drawable);
+            return null;
+        }
+
+        setImage(entry, remoteControl, Util.createDrawableFromBitmap(context, null));
+        ImageTask task = new RemoteControlClientImageTask(context, entry, imageSizeLarge, false, blur, remoteControl);
+        task.execute();
+        return task;
+    }
+
+    public SilentBackgroundTask<Void> loadImage(Context context, RemoteControlClientBase remoteControl, MusicDirectory.Entry entry) {
+        Bitmap bitmap;
+        if (entry == null || entry.getCoverArt() == null) {
+            bitmap = getUnknownImage(entry, imageSizeLarge);
+            setImage(entry, remoteControl, Util.createDrawableFromBitmap(context, bitmap));
+            return null;
+        }
+
+        bitmap = cache.get(getKey(entry.getCoverArt(), imageSizeLarge));
+        if (bitmap != null && !bitmap.isRecycled()) {
+            Drawable drawable = Util.createDrawableFromBitmap(this.context, bitmap);
+            setImage(entry, remoteControl, drawable);
+            return null;
+        }
+
+        setImage(entry, remoteControl, Util.createDrawableFromBitmap(context, null));
+        ImageTask task = new RemoteControlClientImageTask(context, entry, imageSizeLarge, false, false, remoteControl);
+        task.execute();
+        return task;
+    }
+
     private String getKey(String coverArtId, int size) {
         return coverArtId + size;
     }
@@ -329,6 +374,26 @@ public class ImageLoader {
                 }
             } else {
                 imageView.setImageDrawable(drawable);
+            }
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    private void setImage(MusicDirectory.Entry entry, RemoteControlClientBase remoteControl, Drawable drawable) {
+        if(remoteControl != null && drawable != null) {
+            Bitmap origBitmap = ((BitmapDrawable)drawable).getBitmap();
+            if ( origBitmap != null && !origBitmap.isRecycled()) {
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2 && origBitmap != null) {
+                    origBitmap = origBitmap.copy(origBitmap.getConfig(), false);
+                }
+
+                remoteControl.updateAlbumArt(entry, origBitmap);
+            } else  {
+                if(origBitmap != null) {
+                    Log.e(TAG, "Tried to load a recycled bitmap.");
+                }
+
+                remoteControl.updateAlbumArt(entry, null);
             }
         }
     }
@@ -393,6 +458,21 @@ public class ImageLoader {
         @Override
         protected void done(Void result) {
             setImage(mView, mDrawable, mCrossfade);
+        }
+    }
+
+    private class RemoteControlClientImageTask extends ImageTask {
+        private RemoteControlClientBase mRemoteControl;
+
+        public RemoteControlClientImageTask(Context context, MusicDirectory.Entry entry, int size, boolean isNowPlaying, boolean blur, RemoteControlClientBase remoteControl) {
+            super(context, entry, size, isNowPlaying, blur);
+
+            mRemoteControl = remoteControl;
+        }
+
+        @Override
+        protected void done(Void result) {
+            setImage(mEntry, mRemoteControl, mDrawable);
         }
     }
 

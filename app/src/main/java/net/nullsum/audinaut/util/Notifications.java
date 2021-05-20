@@ -15,6 +15,7 @@
 
 package net.nullsum.audinaut.util;
 
+import android.annotation.TargetApi;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -48,6 +49,7 @@ import static android.content.Context.NOTIFICATION_SERVICE;
 public final class Notifications {
     private static final int NOTIFICATION_ID_PLAYING = 100;
     private static final int NOTIFICATION_ID_DOWNLOADING = 102;
+    public static final int NOTIFICATION_ID_SHUT_GOOGLE_UP = 103;
     private static final String CHANNEL_PLAYING_ID = "playback_controls";
     private static final String CHANNEL_DOWNLOADING_ID = "media_download";
     private static final String TAG = Notifications.class.getSimpleName();
@@ -55,6 +57,8 @@ public final class Notifications {
     private static boolean downloadShowing = false;
     private static boolean downloadForeground = false;
     private static boolean persistentPlayingShowing = false;
+
+    private static NotificationChannel downloadingChannel;
 
     public static void showPlayingNotification(final Context context, final DownloadService downloadService, final Handler handler, MusicDirectory.Entry song) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -274,5 +278,45 @@ public final class Notifications {
             downloadForeground = false;
             handler.post(() -> downloadService.stopForeground(true));
         }
+    }
+
+    @TargetApi(Build.VERSION_CODES.O)
+    private static NotificationChannel getDownloadingNotificationChannel(Context context) {
+        if(downloadingChannel == null) {
+            downloadingChannel = new NotificationChannel("downloading-channel", "Downloading Notification", NotificationManager.IMPORTANCE_LOW);
+            downloadingChannel.setDescription("Ongoing downloading notification to keep the service alive");
+
+            NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(downloadingChannel);
+        }
+
+        return downloadingChannel;
+    }
+
+    @TargetApi(Build.VERSION_CODES.O)
+    public static void shutGoogleUpNotification(final DownloadService downloadService) {
+        // On Android O+, service crashes if startForeground isn't called within 5 seconds of starting
+        getDownloadingNotificationChannel(downloadService);
+
+        NotificationCompat.Builder builder;
+        builder = new NotificationCompat.Builder(downloadService)
+                .setSmallIcon(android.R.drawable.stat_sys_download)
+                .setContentTitle(downloadService.getResources().getString(R.string.download_downloading_title, 0))
+                .setContentText(downloadService.getResources().getString(R.string.download_downloading_summary, "Temp"))
+                .setChannelId("downloading-channel");
+
+        final Notification notification = builder.build();
+        startForeground(downloadService, NOTIFICATION_ID_SHUT_GOOGLE_UP, notification);
+        stopForeground(downloadService, true);
+    }
+
+    private static void startForeground(DownloadService downloadService, int notificationId, Notification notification) {
+        downloadService.startForeground(notificationId, notification);
+        downloadService.setIsForeground(true);
+    }
+
+    private static void stopForeground(DownloadService downloadService, boolean removeNotification) {
+        downloadService.stopForeground(removeNotification);
+        downloadService.setIsForeground(false);
     }
 }

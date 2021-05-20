@@ -2,7 +2,7 @@ package net.nullsum.audinaut.domain
 
 import java.io.Serializable
 
-class Artist constructor(var id: String = "", var name: String = "") : Serializable {
+class ArtistKT constructor(var id: String = "", var name: String = "") : Serializable {
     val TAG: String = "Artist"
 
     var index: String = ""

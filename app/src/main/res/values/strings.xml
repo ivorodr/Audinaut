@@ -35,10 +35,13 @@
         set up your personal server (available from <b>subsonic.org</b>), please go to <b>Settings</b> and change the configuration to connect to it.</string>
     <string name="main.offline">Go Offline</string>
     <string name="main.online">Go Online</string>
+    <string name="main.albums_title">Album Lists</string>
     <string name="main.albums_per_folder">Per Folder</string>
     <string name="main.albums_newest">Recently added</string>
     <string name="main.albums_recent">Recently played</string>
     <string name="main.albums_frequent">Most played</string>
+    <string name="main.albums_highest">Top rated</string>
+    <string name="main.albums_starred">Starred</string>
     <string name="main.albums_random">Random</string>
     <string name="main.albums_genres">Genres</string>
     <string name="main.albums_year">Decades</string>
@@ -236,6 +239,8 @@
     <string name="settings.song_press_play_all">Adds everything in the album to the Now Playing Queue</string>
     <string name="settings.song_press_play_next">Adds song as next song</string>
     <string name="settings.song_press_play_last">Adds song to end of Now Playing Queue</string>
+    <string name="settings.browse_by_tags">Browse By Tags</string>
+    <string name="settings.browse_by_tags_summary">Browse by tags instead of by folder structure. Requires Subsonic 4.7+</string>
     <string name="settings.large_album_art">Large Album Art</string>
     <string name="settings.large_album_art_summary">Display albums with large album art instead of in a list</string>
     <string name="settings.blurred_background">Blurred Background</string>

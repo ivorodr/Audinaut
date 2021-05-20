@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.media.RemoteControlClient;
 import android.os.Handler;
 import android.os.Looper;
 import android.telephony.PhoneStateListener;
@@ -308,7 +309,7 @@ public class DownloadServiceLifecycleSupport {
         downloadService.restore(state.songs, state.toDelete, state.currentPlayingIndex, state.currentPlayingPosition);
     }
 
-    private void handleKeyEvent(KeyEvent event) {
+    public void handleKeyEvent(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() > 0) {
             switch (event.getKeyCode()) {
                 case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
@@ -320,6 +321,9 @@ public class DownloadServiceLifecycleSupport {
             }
         } else if (event.getAction() == KeyEvent.ACTION_UP) {
             switch (event.getKeyCode()) {
+                case RemoteControlClient.FLAG_KEY_MEDIA_PLAY_PAUSE:
+                    downloadService.togglePlayPause();
+                    break;
                 case KeyEvent.KEYCODE_HEADSETHOOK:
                 case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
                     if (lastPressTime < (System.currentTimeMillis() - 500)) {
@@ -355,6 +359,7 @@ public class DownloadServiceLifecycleSupport {
                         downloadService.start();
                     }
                     break;
+                case RemoteControlClient.FLAG_KEY_MEDIA_PAUSE:
                 case KeyEvent.KEYCODE_MEDIA_PAUSE:
                     downloadService.pause();
                 default:

@@ -1,6 +1,6 @@
 package net.nullsum.audinaut.domain
 
-enum class PlayerState {
+enum class PlayerStateKT {
     IDLE,
     DOWNLOADING,
     PREPARING,
@@ -10,5 +10,5 @@ enum class PlayerState {
     PAUSED,
     PAUSED_TEMP,
     COMPLETED;
-
+    
 }

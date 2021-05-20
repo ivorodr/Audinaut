@@ -1242,6 +1242,10 @@ public class SubsonicFragment extends Fragment implements SwipeRefreshLayout.OnR
     }
 
     void onSongPress(List<Entry> entries, Entry entry, boolean allowPlayAll) {
+        onSongPress(entries, entry, 0, allowPlayAll);
+    }
+
+    void onSongPress(List<Entry> entries, Entry entry, int position, boolean allowPlayAll) {
         List<Entry> songs = new ArrayList<>();
 
         String songPressAction = Util.getSongPressAction(context);
@@ -1251,7 +1255,7 @@ public class SubsonicFragment extends Fragment implements SwipeRefreshLayout.OnR
                     songs.add(song);
                 }
             }
-            playNow(songs, entry);
+            playNow(songs, entry, position);
         } else if ("next".equals(songPressAction)) {
             getDownloadService().download(Collections.singletonList(entry), false, false, true, false);
         } else if ("last".equals(songPressAction)) {
@@ -1277,20 +1281,20 @@ public class SubsonicFragment extends Fragment implements SwipeRefreshLayout.OnR
             @Override
             protected void done(Boolean result) {
                 Entry selected = songs.isEmpty() ? null : songs.get(0);
-                playNow(songs, selected, playlistName, playlistId);
+                playNow(songs, selected, 0, playlistName, playlistId);
             }
         }.execute();
     }
 
-    private void playNow(List<Entry> entries, Entry song) {
-        playNow(entries, song, null, null);
+    private void playNow(List<Entry> entries, Entry song, int position) {
+        playNow(entries, song, position, null, null);
     }
 
-    private void playNow(final List<Entry> entries, final Entry song, final String playlistName, final String playlistId) {
+    private void playNow(final List<Entry> entries, final Entry song, final int position, final String playlistName, final String playlistId) {
         new LoadingTask<Void>(context) {
             @Override
             protected Void doInBackground() {
-                playNowInTask(entries, song, playlistName, playlistId);
+                playNowInTask(entries, song, position, playlistName, playlistId);
                 return null;
             }
 
@@ -1301,14 +1305,14 @@ public class SubsonicFragment extends Fragment implements SwipeRefreshLayout.OnR
         }.execute();
     }
 
-    private void playNowInTask(final List<Entry> entries, final Entry song, final String playlistName, final String playlistId) {
+    private void playNowInTask(final List<Entry> entries, final Entry song, final int position, final String playlistName, final String playlistId) {
         DownloadService downloadService = getDownloadService();
         if (downloadService == null) {
             return;
         }
 
         downloadService.clear();
-        downloadService.download(entries, false, true, true, false, entries.indexOf(song));
+        downloadService.download(entries, false, true, true, false, entries.indexOf(song), position);
         downloadService.setSuggestedPlaylistName(playlistName, playlistId);
     }
 
