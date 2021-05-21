@@ -272,7 +272,7 @@ public final class Util {
 
         SharedPreferences prefs = getPreferences(context);
         boolean wifi = networkInfo.getType() == ConnectivityManager.TYPE_WIFI;
-        int preloadCount = Integer.parseInt(prefs.getString(wifi ? Constants.PREFERENCES_KEY_PRELOAD_COUNT_WIFI : Constants.PREFERENCES_KEY_PRELOAD_COUNT_MOBILE, "-1"));
+        int preloadCount = Integer.parseInt(prefs.getString(wifi ? Constants.PREFERENCES_KEY_PRELOAD_COUNT_WIFI : Constants.PREFERENCES_KEY_PRELOAD_COUNT_MOBILE, "3"));
         return preloadCount == -1 ? Integer.MAX_VALUE : preloadCount;
     }
 
