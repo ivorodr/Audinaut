@@ -41,12 +41,11 @@ import android.text.util.Linkify;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Gravity;
+import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.app.Activity;
-import android.view.View;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
@@ -72,9 +71,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.text.DecimalFormat;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -1163,7 +1159,7 @@ public final class Util {
     }
 
     public static void hideKeyboard(View view) {
-        InputMethodManager imm = (InputMethodManager) view.getContext().getSystemService(Activity.INPUT_METHOD_SERVICE);
+        InputMethodManager imm = (InputMethodManager) view.getContext().getSystemService(AppCompatActivity.INPUT_METHOD_SERVICE);
 
         imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
