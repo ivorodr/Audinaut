@@ -146,6 +146,10 @@
     <style name="LightSpinnerItem" parent="Widget.AppCompat.TextView.SpinnerItem">
         <item name="android:textColor">?android:attr/textColorPrimary</item>
     </style>
+	
+	<style name="DarkSpinnerItem" parent="Widget.AppCompat.TextView.SpinnerItem">
+        <item name="android:textColor">?android:attr/textColorPrimaryInverse</item>
+    </style>
 
     <style name="LightActionMode" parent="@style/Widget.AppCompat.ActionMode">
         <item name="titleTextStyle">@style/TextAppearance.AppCompat.Widget.ActionBar.Title.Inverse</item>
