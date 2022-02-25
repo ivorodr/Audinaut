@@ -10,7 +10,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 30
         versionCode 203
-        versionName '0.5.3'
+        versionName '0.5.4'
         setProperty("archivesBaseName", "Audinaut $versionName")
     }
 
