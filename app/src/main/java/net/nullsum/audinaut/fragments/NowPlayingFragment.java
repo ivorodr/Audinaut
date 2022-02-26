@@ -751,6 +751,7 @@ public class NowPlayingFragment extends SubsonicFragment implements OnGestureLis
             fastforwardButton.setVisibility(View.GONE);
         }
         updateTitle();
+        scrollToCurrent();
     }
 
     private void setupSubtitle(int currentPlayingIndex) {
